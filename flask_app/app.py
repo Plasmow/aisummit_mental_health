@@ -109,6 +109,12 @@ def friend_conversation(friend_name, friend_prompt):
 def home():
     return render_template('home.html')
 
+@app.route('/analyze_mbti', methods=['POST'])
+def analyze_mbti():
+    conversation_history = request.json.get('conversation_history', [])
+    mbti_type = hidden_analysis(conversation_history)
+    return jsonify({"mbti_type": mbti_type})
+
 @app.route('/chat', methods=['GET', 'POST'])
 def chat():
     form = ChatForm()
@@ -122,9 +128,15 @@ def chat():
         db.session.add(new_message)
         db.session.add(ai_message)
         db.session.commit()
-        return redirect(url_for('chat'))
+        
+        # Analyze MBTI type after the chat
+        conversation_history = [{"role": "user", "content": message}, {"role": "assistant", "content": ai_response}]
+        mbti_type = hidden_analysis(conversation_history)
+        return redirect(url_for('chat', mbti_type=mbti_type))
+    
     messages = ChatMessage.query.all()
-    return render_template('chat.html', form=form, messages=messages)
+    mbti_type = request.args.get('mbti_type', None)
+    return render_template('chat.html', form=form, messages=messages, mbti_type=mbti_type)
 
 @app.route('/chat_list')
 def chat_list():
