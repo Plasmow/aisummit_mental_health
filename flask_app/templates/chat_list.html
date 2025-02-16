@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block title %}Chat List{% endblock %}
+
+{% block content %}
+<h1>Chat List</h1>
+<ul>
+    {% for msg in messages %}
+        <li>{{ msg.username }} (Turn {{ msg.turn }}): {{ msg.message }}</li>
+    {% endfor %}
+</ul>
+{% endblock %}

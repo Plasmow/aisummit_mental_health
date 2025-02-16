@@ -1,0 +1,11 @@
+python-dotenv
+os
+requests
+fastapi
+uvicorn
+pydantic
+python-decouple
+mistralai
+Flask==2.3.2
+Flask-WTF==1.2.2
+Flask-SQLAlchemy==3.0.3
