@@ -6,17 +6,17 @@ from mistralai import Mistral
 from mistralai.models import UserMessage, SystemMessage
 import os
 
-# Télécharger WordNet si nécessaire
+#Download WordNet if necessary
 nltk.download('wordnet')
 nltk.download('omw-1.4')
 
-# Fonction de vérification sémantique locale avec WordNet
+# Local semantic verification function with WordNet
 def is_semantically_offensive(user_text, offensive_words, threshold=0.8):
     """
     Vérifie si un des mots de user_text est sémantiquement lié (via WordNet) à un mot de offensive_words.
     Retourne (True, matched_word) si une correspondance est trouvée, sinon (False, None).
     """
-    tokens = user_text.lower().split()  # Tokenisation simple
+    tokens = user_text.lower().split()  # simple Tokenisation 
     for token in tokens:
         token_synsets = wn.synsets(token)
         if not token_synsets:
@@ -32,10 +32,10 @@ def is_semantically_offensive(user_text, offensive_words, threshold=0.8):
                         return True, offensive_word
     return False, None
 
-# Initialiser le client Mistralai avec votre API key
+# Initialize the Mistralai client with the API key given in the documentation
 client = Mistral(api_key = os.getenv("API_KEY"))
 
-# Charger les datasets et générer le DataFrame (partie non modifiée)
+# Load datasets and generate DataFrame
 ultra_chat_dataset = pd.read_parquet('https://huggingface.co/datasets/HuggingFaceH4/ultrachat_200k/resolve/main/data/test_gen-00000-of-00001-3d4cd8309148a71f.parquet')
 harmful_strings_url = "https://raw.githubusercontent.com/llm-attacks/llm-attacks/main/data/advbench/harmful_strings.csv"
 harmful_strings_df = pd.read_csv(harmful_strings_url)
@@ -62,7 +62,7 @@ df["embeddings"] = get_embeddings_by_chunks(df["text"].tolist(), 50)
 print(df)
 df.to_csv('data.csv', index=False)
 
-# Demander à l'utilisateur de saisir la liste des thèmes offensants
+# Ask user to enter list of offensive themes
 offensive_input = input("Mettez les thèmes à éviter (séparés par des virgules) : ")
 offensive_words = [word.strip() for word in offensive_input.split(",") if word.strip()]
 print("Liste des thèmes offensants :", offensive_words)
@@ -72,7 +72,7 @@ def save_offensive_words():
     with open("offensive_words.txt", "w") as f:
         f.write("\n".join(offensive_words))
 
-# Prompt système pour Mistralai avec instructions sémantiques
+# Prompt system for Mistralai with semantic instructions
 system_prompt = (
     "You are a strict moderation assistant specialized in detecting offensive content. "
     "You must analyze user-submitted text and determine whether it contains offensive or inappropriate content. "
@@ -102,17 +102,17 @@ print("  /delete <word>   - Remove a word from the offensive list")
 print("  /list            - Display all offensive words")
 print("  exit             - Quit the program")
 
-# Boucle interactive
+# Interactive loop
 while True:
     user_input = input("\nEnter a sentence to moderate: ").strip()
 
-    # Commande pour quitter
+    # Command to exit
     if user_input.lower() == "exit":
         print("Exiting moderation system. Saving offensive words...")
         save_offensive_words()
         break
 
-    # Commande pour ajouter un mot offensant
+    # Command to add an offensive word
     if user_input.startswith("/add "):
         new_word = user_input.split(" ", 1)[1].strip()
         if new_word:
@@ -126,7 +126,7 @@ while True:
             print("Please provide a valid word to add.")
         continue
 
-    # Commande pour supprimer un mot offensant
+    # Command to delete an offensive word
     if user_input.startswith("/delete "):
         word_to_delete = user_input.split(" ", 1)[1].strip()
         if word_to_delete:
@@ -140,7 +140,7 @@ while True:
             print("Please provide a valid word to delete.")
         continue
 
-    # Commande pour afficher la liste des mots offensants
+    # Command to display the list of offensive words
     if user_input == "/list":
         if offensive_words:
             print("Offensive words: " + ", ".join(offensive_words))
@@ -148,22 +148,22 @@ while True:
             print("No offensive words in the list.")
         continue
 
-    # Vérification sémantique locale avant d'appeler Mistralai
+    # Local semantic check before calling Mistralai
     sem_offensive, matched_word = is_semantically_offensive(user_input, offensive_words, threshold=0.8)
     if sem_offensive:
         print(f"Blocked: The input is semantically related to the offensive word '{matched_word}'.")
-        # Ajouter la déclaration nuisible à la liste si ce n'est pas déjà présent
+        # Add harmful statement to list if not already present
         if user_input not in offensive_words:
             offensive_words.append(user_input)
             save_offensive_words()
             print("Harmful declaration added to offensive words list.")
         continue
 
-    # Sinon, utiliser Mistralai pour modérer le texte selon le prompt système
+    # Otherwise, using Mistralai to moderate the text according to the system prompt
     moderation_response = run_mistralai_moderation(user_input)
     print(f"Mistralai's Response: {moderation_response}")
     
-    # Si la réponse de Mistralai indique un blocage, ajouter l'entrée à la liste des mots offensants
+    # If Mistralai's response indicates a block, add the entry to the list of offensive words
     if moderation_response.lower().startswith("blocked:"):
         if user_input not in offensive_words:
             offensive_words.append(user_input)
