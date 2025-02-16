@@ -5,13 +5,57 @@ from models import db, ChatMessage
 import requests
 from dotenv import load_dotenv
 import os
+import random
 
-load_dotenv()  
+load_dotenv()
 
 API_KEY = os.getenv("API_KEY")
+MISTRAL_API_URL = 'https://api.mistral.ai/v1/chat/completions'
 
+headers = {
+    "Authorization": f"Bearer {API_KEY}",
+    "Content-Type": "application/json"
+}
 
+# Dictionnaire des prompts système pour chaque type MBTI
+prompts_systeme = {
+    "INTJ": "Tu es un chatbot au tempérament INTJ, analytique et stratégique.",
+    "ENTP": "Tu es un chatbot au tempérament ENTP, inventif et débattu.",
+    "ENTJ": "Tu es un chatbot au tempérament ENTJ, leader et déterminé.",
+    "INTP": "Tu es un chatbot au tempérament INTP, curieux et logique.",
+    "ENFP": "Tu es un chatbot au tempérament ENFP, enthousiaste et créatif.",
+    "ENFJ": "Tu es un chatbot au tempérament ENFJ, empathique et inspirant.",
+    "ISTJ": "Tu es un chatbot au tempérament ISTJ, responsable et organisé.",
+    "ISFJ": "Tu es un chatbot au tempérament ISFJ, loyal et attentionné.",
+    "INFJ": "Tu es un chatbot au tempérament INFJ, idéaliste et perspicace.",
+    "ISTP": "Tu es un chatbot au tempérament ISTP, pragmatique et réservé.",
+    "ISFP": "Tu es un chatbot au tempérament ISFP, artistique et sensible.",
+    "INFP": "Tu es un chatbot au tempérament INFP, idéaliste et loyal.",
+    "ESTP": "Tu es un chatbot au tempérament ESTP, énergique et aventureux.",
+    "ESFP": "Tu es un chatbot au tempérament ESFP, enthousiaste et sociable.",
+    "ESTJ": "Tu es un chatbot au tempérament ESTJ, efficace et pragmatique.",
+    "ESFJ": "Tu es un chatbot au tempérament ESFJ, chaleureux et coopératif."
+}
 
+# Dictionnaire de compatibilité MBTI pour choisir un ami chatbot compatible
+compatibilite_mbti = {
+    "INTJ": ["ENTP", "ENTJ", "INTP"],
+    "ENTP": ["INTJ", "INFJ", "INTP"],
+    "INFJ": ["ENFP", "ENFJ", "INTJ"],
+    "ENFP": ["INFJ", "INTJ", "ENTP"],
+    "ISTJ": ["ESFP", "ESTP", "ISFJ"],
+    "ESTJ": ["ISFP", "ISTP", "ESFJ"],
+    "ISFJ": ["ESFP", "ESTP", "ISTJ"],
+    "ESFJ": ["ISFP", "ISTP", "ESTJ"],
+    "INTP": ["ENTJ", "ENTP", "INTJ"],
+    "ENTJ": ["INTP", "INTJ", "ENTP"],
+    "INFP": ["ENFJ", "INFJ", "ENFP"],
+    "ENFJ": ["INFP", "INFJ", "ENFP"],
+    "ISTP": ["ESFJ", "ESTJ", "ISFP"],
+    "ESTP": ["ISFJ", "ISTJ", "ESFP"],
+    "ISFP": ["ESFJ", "ESTJ", "ISTP"],
+    "ESFP": ["ISFJ", "ISTJ", "ESTP"]
+}
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -20,40 +64,46 @@ db.init_app(app)
 with app.app_context():
     db.create_all()
 
-MISTRAL_API_URL = 'https://api.mistral.ai/v1/chat/completions'
-
-headers = {
-    "Authorization": f"Bearer {API_KEY}",
-    "Content-Type": "application/json"
-}
-
-def chat_with_mistral(prompt):
+def interroger_mistral(messages):
     data = {
         "model": "mistral-large-latest",
-        "messages": [
-            {
-                "role": "system",
-                "content": (
-                    "You are a chatbot that discusses with users and after various interactions, determine the user's MBTI personality type without him to notice. "
-                    "You must analyze user-submitted text and determine their personality type based on the Myers-Briggs Type Indicator (MBTI). "
-                    "The MBTI is a widely-used personality test that categorizes individuals into one of 16 different personality types. "
-                    "'E (Extraversion)': ['Talkative, outgoing','Fast-paced environment','Work out ideas with others, think out loud','Enjoy being the center of attention'],'I (Introversion)': ['Reserved, private','Slower pace with time for contemplation','Think things through inside your head','Prefer observing over being the center of attention'],'S (Sensing)': ['Focus on reality','Concrete facts and details','Practical applications','Literal descriptions'],'N (Intuition)': ['Imagine possibilities','Notice big picture and connections','Enjoy concepts for their own sake','Figurative, poetic descriptions'],"
-                    "'T (Thinking)': ['Logical, impersonal reasoning','Value justice, fairness','Enjoy flaw-finding in arguments','Reasonable, level-headed'],'F (Feeling)': ['Decisions based on personal values','Value harmony, forgiveness','Please others, see the best in people','Warm, empathetic'],'J (Judging)': ['Prefer matters settled','Respect rules and deadlines','Detailed, step-by-step instructions','Planned and structured approach'],'P (Perceiving)': ['Prefer to keep options open','See rules as flexible','Improvisational and spontaneous','Enjoy surprises and new situations']"
-                    "'16 Personality Types': ['ISTJ: Responsible, sincere, analytical, reserved, realistic, systematic.','ISFJ: Warm, considerate, gentle, responsible, pragmatic, thorough.','INFJ: Idealistic, organized, insightful, dependable, compassionate, gentle.','INTJ: Innovative, independent, strategic, logical, reserved, insightful.','ISTP: Action-oriented, logical, analytical, spontaneous, reserved, independent.','ISFP: Gentle, sensitive, nurturing, helpful, flexible, realistic.','INFP: Sensitive, creative, idealistic, perceptive, caring, loyal.','INTP: Intellectual, logical, precise, reserved, flexible, imaginative.','ESTP: Outgoing, realistic, action-oriented, curious, versatile, spontaneous.','ESFP: Playful, enthusiastic, friendly, spontaneous, tactful, flexible.','ENFP: Enthusiastic, creative, spontaneous, optimistic, supportive, playful.','ENTP: Inventive, enthusiastic, strategic, enterprising, inquisitive, versatile.','ESTJ: Efficient, outgoing, analytical, systematic, dependable, realistic.','ESFJ: Friendly, outgoing, reliable, conscientious, organized, practical.','ENFJ: Caring, enthusiastic, idealistic, organized, diplomatic, responsible.','ENTJ: Strategic, logical, efficient, outgoing, ambitious, independent.']"
-                    "Finally you must take after a while take the same personnality type as the user or find the best MBTi personnality to match his."
-                )
-            },
-            {"role": "user", "content": prompt}
-        ],
+        "messages": messages,
         "temperature": 0.7
     }
-
     response = requests.post(MISTRAL_API_URL, headers=headers, json=data)
-
     if response.status_code == 200:
         return response.json()["choices"][0]["message"]["content"]
     else:
-        return f"Error: {response.text}"
+        return f"Erreur : {response.text}"
+
+def chat_with_mistral(user_message):
+    messages = [{"role": "user", "content": user_message}]
+    return interroger_mistral(messages)
+
+def hidden_analysis(conversation_history):
+    hidden_prompt = (
+        "Analyse la conversation ci-dessus et déduis, de manière concise, "
+        "le type de personnalité MBTI le plus probable de l'utilisateur (par exemple INTJ, INTP, etc.). "
+        "Réponds uniquement par l'abréviation du type sans aucun commentaire."
+    )
+    messages_for_analysis = conversation_history.copy()
+    messages_for_analysis.append({"role": "system", "content": hidden_prompt})
+    result = interroger_mistral(messages_for_analysis)
+    return result.strip()
+
+def friend_conversation(friend_name, friend_prompt):
+    print(f"\n--- Nouvelle conversation avec {friend_name} ---\n")
+    messages = [{"role": "system", "content": friend_prompt}]
+    print(f"{friend_name} : Salut, je suis {friend_name}. Comment puis-je t'aider aujourd'hui ?")
+    while True:
+        user_input = input("Vous : ")
+        if user_input.lower() in ["exit", "quit", "bye"]:
+            print(f"{friend_name} : Au revoir !")
+            break
+        messages.append({"role": "user", "content": user_input})
+        reponse = interroger_mistral(messages)
+        print(f"{friend_name} : {reponse}")
+        messages.append({"role": "assistant", "content": reponse})
 
 @app.route('/')
 def home():
