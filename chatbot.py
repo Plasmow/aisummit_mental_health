@@ -8,16 +8,16 @@ load_dotenv()
 api_key = os.getenv("API_KEY")
 
 
-# URL de l'API
+# API URL
 MISTRAL_API_URL = "https://api.mistral.ai/v1/chat/completions"
 
-# En-têtes de la requête
+# Query headers
 headers = {
     "Authorization": f"Bearer {API_KEY}",
     "Content-Type": "application/json"
 }
 
-# **Champ où tu donnes un rôle à l'IA**
+# Field for prompting the AI instruction
 role_instruction = (
     "Tu es un assistant virtuel qui pose des questions progressivement en réagissant à mes réponses de manière intéressée. "
     "Très amical mais pas trop pompeux. Tu cherches à en apprendre plus sur moi et mon état de santé, si j'ai déjà eu des pensées suicidaires, "
@@ -28,31 +28,31 @@ role_instruction = (
 # Initial message
 initial_message = "Comment allez-vous?"
 
-# Historique de conversation
+# Converseation History
 conversation_history = [
     {"role": "system", "content": role_instruction},
     {"role": "assistant", "content": initial_message}
 ]
 
-# Stocker les questions posées par l'IA
+# Store questions asked by the AI
 questions_asked = [initial_message]
 
-# Stocker les réponses de l'utilisateur
+# Store the user responses
 user_responses = []
 
-# Compteur pour les sujets sensibles
+# Counter for sensitive subjects
 sensitive_topics_count = 0
 sensitive_keywords = ["suicide", "complexe", "isolement", "inquiétude"]
 
 def chat_with_mistral(prompt):
     conversation_history.append({"role": "user", "content": prompt})
     data = {
-        "model": "mistral-large-latest",  # Ou un autre modèle comme "mistral-small"
+        "model": "mistral-large-latest",  
         "messages": conversation_history,
         "temperature": 0.7
     }
 
-    # Faire la requête
+    # Request
     response = requests.post(MISTRAL_API_URL, headers=headers, json=data)
 
     if response.status_code == 200:
@@ -63,7 +63,6 @@ def chat_with_mistral(prompt):
     else:
         return f"Erreur : {response.text}"
 
-# Boucle de conversation
 print("Chatbot Mistral AI (tape 'exit' pour quitter)")
 print(f"Mistral: {initial_message}")
 
@@ -84,7 +83,7 @@ while True:
         print("Mistral: Merci pour vos réponses. Prenez soin de vous.")
         break
 
-# Afficher les questions posées et les réponses de l'utilisateur
+# Display questions asked and user answers
 print("\nQuestions posées par l'IA:")
 for question in questions_asked:
     print(f"- {question}")
