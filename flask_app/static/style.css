@@ -19,38 +19,4 @@ nav a {
 
 form div {
     margin-bottom: 1em;
-}
-body {
-    font-family: Arial, sans-serif;
-    background-color: white;
-    border: 5px solid blue;
-    margin: 0;
-    padding: 20px;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-}
 
-h1 {
-    font-size: 2em;
-    margin-bottom: 20px;
-}
-
-.messages {
-    flex: 1;
-    overflow-y: auto;
-    border: 1px solid #ccc;
-    padding: 10px;
-    margin-bottom: 10px;
-}
-
-input[type="text"] {
-    width: 70%;
-    padding: 10px;
-    font-size: 1em;
-}
-
-button {
-    padding: 10px 20px;
-    font-size: 1em;
-}
