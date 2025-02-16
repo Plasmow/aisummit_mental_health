@@ -2,6 +2,13 @@ body {
     font-family: Arial, sans-serif;
 }
 
+body {
+    background-color: #08203D; /* Couleur bleu foncé */
+    color: #ffffff; /* Couleur du texte en blanc pour contraster */
+    font-family: Arial, sans-serif;
+}
+
+
 nav {
     background-color: #37B6E6;
     padding: 1em;
