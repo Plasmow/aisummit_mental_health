@@ -17,6 +17,8 @@ headers = {
     "Content-Type": "application/json"
 }
 
+
+
 # Dictionnaire des prompts système pour chaque type MBTI
 prompts_systeme = {
     "INTJ": "Tu es un chatbot au tempérament INTJ, analytique et stratégique.",
@@ -57,6 +59,41 @@ compatibilite_mbti = {
     "ESFP": ["ISFJ", "ISTJ", "ESTP"]
 }
 
+def hidden_analysis(conversation_history):
+    # Simple heuristic to determine MBTI type based on conversation history
+    # This is a placeholder and should be replaced with a more sophisticated analysis
+    keyword_mapping = {
+        "analytical": "INTJ",
+        "inventive": "ENTP",
+        "leader": "ENTJ",
+        "curious": "INTP",
+        "enthusiastic": "ENFP",
+        "empathic": "ENFJ",
+        "responsible": "ISTJ",
+        "loyal": "ISFJ",
+        "idealistic": "INFJ",
+        "pragmatic": "ISTP",
+        "artistic": "ISFP",
+        "energetic": "ESTP",
+        "sociable": "ESFP",
+        "efficient": "ESTJ",
+        "cooperative": "ESFJ"
+    }
+
+    # Count occurrences of keywords in the conversation history
+    keyword_count = {keyword: 0 for keyword in keyword_mapping}
+    for message in conversation_history:
+        for keyword in keyword_count:
+            if keyword in message.message.lower():
+                keyword_count[keyword] += 1
+
+    # Determine the MBTI type based on the highest keyword count
+    mbti_type = max(keyword_count, key=keyword_count.get)
+    return keyword_mapping.get(mbti_type, "INTJ")  # Default to INTJ if no keywords match
+
+
+
+
 app = Flask(__name__)
 app.config.from_object(Config)
 db.init_app(app)
@@ -76,34 +113,18 @@ def interroger_mistral(messages):
     else:
         return f"Erreur : {response.text}"
 
-def chat_with_mistral(user_message):
-    messages = [{"role": "user", "content": user_message}]
-    return interroger_mistral(messages)
-
-def hidden_analysis(conversation_history):
-    hidden_prompt = (
-        "Analyse la conversation ci-dessus et déduis, de manière concise, "
-        "le type de personnalité MBTI le plus probable de l'utilisateur (par exemple INTJ, INTP, etc.). "
-        "Réponds uniquement par l'abréviation du type sans aucun commentaire."
-    )
-    messages_for_analysis = conversation_history.copy()
-    messages_for_analysis.append({"role": "system", "content": hidden_prompt})
-    result = interroger_mistral(messages_for_analysis)
-    return result.strip()
-
-def friend_conversation(friend_name, friend_prompt):
-    print(f"\n--- Nouvelle conversation avec {friend_name} ---\n")
-    messages = [{"role": "system", "content": friend_prompt}]
-    print(f"{friend_name} : Salut, je suis {friend_name}. Comment puis-je t'aider aujourd'hui ?")
-    while True:
-        user_input = input("Vous : ")
-        if user_input.lower() in ["exit", "quit", "bye"]:
-            print(f"{friend_name} : Au revoir !")
-            break
-        messages.append({"role": "user", "content": user_input})
-        reponse = interroger_mistral(messages)
-        print(f"{friend_name} : {reponse}")
-        messages.append({"role": "assistant", "content": reponse})
+def chat_with_mistral(user_message, user_mbti):
+    compatible_mbti = random.choice(compatibilite_mbti[user_mbti])
+    ai_profile = {
+        "name": f"AI_{compatible_mbti}",
+        "personality": prompts_systeme[compatible_mbti]
+    }
+    messages = [
+        {"role": "system", "content": ai_profile["personality"]},
+        {"role": "user", "content": user_message}
+    ]
+    ai_response = interroger_mistral(messages)
+    return ai_response, ai_profile
 
 @app.route('/')
 def home():
@@ -122,26 +143,29 @@ def chat():
         username = form.username.data
         message = form.message.data
         turn = ChatMessage.get_user_turn(username) + 1
-        ai_response = chat_with_mistral(message)
+
+        # Analyze MBTI type from conversation history
+        conversation_history = ChatMessage.get_conversation_history(username)
+        user_mbti = hidden_analysis(conversation_history)
+
+        ai_response, ai_profile = chat_with_mistral(message, user_mbti)
         new_message = ChatMessage(username=username, message=message, turn=turn)
-        ai_message = ChatMessage(username="MistralAI", message=ai_response, turn=turn)
+        ai_message = ChatMessage(username=ai_profile["name"], message=ai_response, turn=turn)
         db.session.add(new_message)
         db.session.add(ai_message)
         db.session.commit()
-        
-        # Analyze MBTI type after the chat
-        conversation_history = [{"role": "user", "content": message}, {"role": "assistant", "content": ai_response}]
-        mbti_type = hidden_analysis(conversation_history)
-        return redirect(url_for('chat', mbti_type=mbti_type))
-    
+
     messages = ChatMessage.query.all()
-    mbti_type = request.args.get('mbti_type', None)
-    return render_template('chat.html', form=form, messages=messages, mbti_type=mbti_type)
+    return render_template('chat.html', form=form, messages=messages)
 
 @app.route('/chat_list')
 def chat_list():
     messages = ChatMessage.query.all()
     return render_template('chat_list.html', messages=messages)
 
+
 if __name__ == '__main__':
     app.run(debug=True)
+
+
+

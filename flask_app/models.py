@@ -5,9 +5,14 @@ db = SQLAlchemy()
 class ChatMessage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), nullable=False)
-    message = db.Column(db.String(200), nullable=False)
+    message = db.Column(db.String(500), nullable=False)
     turn = db.Column(db.Integer, nullable=False)
 
     @staticmethod
+    def get_conversation_history(username):
+        return ChatMessage.query.filter_by(username=username).order_by(ChatMessage.turn).all()
+
+    @staticmethod
     def get_user_turn(username):
-        return db.session.query(db.func.max(ChatMessage.turn)).filter_by(username=username).scalar() or 0
+        last_message = ChatMessage.query.filter_by(username=username).order_by(ChatMessage.turn.desc()).first()
+        return last_message.turn if last_message else 0
