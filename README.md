@@ -4,7 +4,10 @@
 Welcome to **Loneline** – an AI-powered chatbot designed to help you feel less lonely through engaging, personalized conversations. The chatbot not only provides friendly interaction but also adapts its communication style based on your MBTI personality type, fostering more meaningful and supportive exchanges.
 
 ---
+-> Launch the app with
+ *py flask_app/app.py*
 
+---
 ## Overview
 
 **Loneline** is inspired by empirical research and expert advice:
