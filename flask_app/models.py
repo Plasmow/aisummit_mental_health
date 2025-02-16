@@ -7,6 +7,9 @@ class ChatMessage(db.Model):
     username = db.Column(db.String(80), nullable=False)
     message = db.Column(db.String(500), nullable=False)
     turn = db.Column(db.Integer, nullable=False)
+    
+    def __str__(self):
+        return f"{self.username}, {self.message}, {self.turn}"
 
     @staticmethod
     def get_conversation_history(username):
