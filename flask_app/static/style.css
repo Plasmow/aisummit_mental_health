@@ -19,17 +19,4 @@ nav a {
 
 form div {
     margin-bottom: 1em;
-
-}
-
-
-.container {
-    padding: 2em;
-    background-color:  #08203D; /* Même couleur de fond pour le conteneur */
-}
-
-body {
-    background-color: #08203D; /* Couleur bleu foncé */
-    color: #ffffff; /* Couleur du texte en blanc pour contraster */
-    font-family: Arial, sans-serif;
 }
